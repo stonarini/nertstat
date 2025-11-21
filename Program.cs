@@ -28,6 +28,8 @@ using (var db = new SqliteConnection("Data Source=nerts.db")) {
     new SqliteCommand("PRAGMA journal_mode=WAL;CREATE TABLE IF NOT EXISTS History (Ts INT, Name TEXT, Cur INT, Max INT, LobbyID TEXT, Region TEXT);", db).ExecuteNonQuery();
 }
 
+app.UseStaticFiles();
+
 app.MapGet("/", (HttpContext context) => {
     var cacheBuster = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     int lobbyCount;
@@ -45,151 +47,44 @@ app.MapGet("/", (HttpContext context) => {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script src="https://unpkg.com/htmx.org@1.9.10"></script>
         <style>
-            :root {
-                --bg-dark: #034528;
-                --bg-gradient-start: #06603b;
-                --bg-gradient-end: #02301c;
-                --glass-border: rgba(134, 239, 172, 0.3);
-                --glass-bg: rgba(6, 96, 59, 0.4);
-                --text-chrome-top: #e6fffa;
-                --text-chrome-bot: #5eead4;
-            }
+        @font-face {
+            font-family: 'Roboto Slab';
+            font-style: medium;
+            font-weight: 500;
+            src: url('RobotoSlab-Medium.woff2') format('woff2');
+        }
+        body {
+            background-image: image-set( url('background.avif') type('image/avif'), url('background.webp') type('image/webp'));
+            background-size: contain;
+            background-position: center top;
+            background-repeat: repeat;
 
-            body {
-                font-family: 'Segoe UI', Verdana, sans-serif;
-                background-color: var(--bg-dark);
-                margin: 0;
-                height: 100vh;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                overflow: hidden;
-                color: white;
-            }
+            width: 100vw;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
 
-            /* COMPLEX BACKGROUND PATTERN GENERATION */
-            .bg-mesh {
-                position: fixed;
-                top: 0; left: 0; right: 0; bottom: 0;
-                z-index: -1;
-                /* This creates the dot/mesh pattern using CSS gradients */
-                background-image:
-                    radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                    radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
-                background-size: 4px 4px;
-                background-position: 0 0, 2px 2px;
-                /* Vignette overlay */
-                mask-image: radial-gradient(circle at center, black 40%, rgba(0,0,0,0.4) 100%);
-                -webkit-mask-image: radial-gradient(circle at center, black 40%, rgba(0,0,0,0.4) 100%);
-            }
+            font-family: 'Roboto Slab', serif;
+            font-weight: 500;
+        }
 
-            /* The Horizontal "Glass" Strip */
-            .banner-strip {
-                width: 100%;
-                padding: 2rem 0;
-                background: linear-gradient(90deg, transparent 0%, var(--glass-bg) 20%, var(--glass-bg) 80%, transparent 100%);
-                border-top: 1px solid var(--glass-border);
-                border-bottom: 1px solid var(--glass-border);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                position: relative;
-                backdrop-filter: blur(2px);
-                box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            }
+        table {
+            border-collapse: collapse;
+            width: 630px;
+            height: 60px;
+        }
 
-            /* Typography */
-            .logo-container {
-                text-align: center;
-                position: relative;
-                margin-bottom: 1rem;
-            }
+        table tr {
+            background-image: url('/line.webp');
+            background-repeat: no-repeat;
+            background-size: 630px 60px;
+            background-position: center;
+        }
 
-            .logo-text {
-                font-family: Impact, sans-serif;
-                font-style: italic;
-                font-size: clamp(4rem, 10vw, 7rem); /* Responsive giant text */
-                margin: 0;
-                line-height: 0.9;
-                letter-spacing: 2px;
-                text-transform: uppercase;
-
-                /* The "Chrome" Effect */
-                background: linear-gradient(to bottom, #fff 20%, #4ade80 50%, #065f46 100%);
-                -webkit-background-clip: text;
-                background-clip: text;
-                color: transparent;
-
-                /* The Outline */
-                -webkit-text-stroke: 2px #a7f3d0;
-                filter: drop-shadow(0 4px 0px rgba(0,0,0,0.3));
-            }
-
-            /* Inner Pattern inside the text (Advanced CSS) */
-            .logo-text::after {
-                content: 'NERTS!';
-                position: absolute;
-                left: 0; top: 0; width: 100%; height: 100%;
-                background-image: radial-gradient(rgba(0,0,0,0.2) 1px, transparent 1px);
-                background-size: 3px 3px;
-                -webkit-background-clip: text;
-                background-clip: text;
-                color: transparent;
-                z-index: 1;
-                pointer-events: none;
-            }
-
-            .subtitle {
-                font-family: 'Segoe UI', sans-serif;
-                font-weight: 300;
-                font-style: italic;
-                font-size: 1.5rem;
-                letter-spacing: 0.5em;
-                color: #6ee7b7; /* Light mint */
-                text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-                margin-left: 0.5em; /* Optical centering due to spacing */
-                text-transform: uppercase;
-            }
-
-            /* Lobby List Styling */
-            .lobby-area {
-                margin-top: 3rem;
-                width: 100%;
-                max-width: 700px;
-                text-align: center;
-            }
-
-            .section-header {
-                font-size: 0.9rem;
-                color: #6ee7b7;
-                letter-spacing: 2px;
-                text-transform: uppercase;
-                opacity: 0.8;
-                margin-bottom: 1rem;
-                border-bottom: 1px solid rgba(110, 231, 183, 0.3);
-                padding-bottom: 5px;
-                display: inline-block;
-            }
-
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                font-family: monospace;
-                font-size: 0.9rem;
-            }
-
-            tr { transition: background 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05); }
-            tr:hover { background: rgba(255,255,255,0.1); cursor: default; }
-
-            td { padding: 8px 12px; text-align: left; color: #d1fae5; }
-            td.region { text-align: right; opacity: 0.6; }
-            td.count { text-align: center; width: 60px; }
-
-            .loading { font-style: italic; color: #6ee7b7; opacity: 0.5; }
-
-            /* Open Graph Tags */
-            .og-image-container { display: none; }
+        table tr:hover {
+            background-image: url('/hover-line.webp');
+            cursor: pointer;
+        }
         </style>
 
         <meta property="og:title" content="NERTS! Online Lobbies">
@@ -200,21 +95,15 @@ app.MapGet("/", (HttpContext context) => {
         <meta name="twitter:card" content="summary_large_image">
     </head>
     <body>
-        <div class="bg-mesh"></div>
-
-        <div class="banner-strip">
-            <div class="logo-container">
-                <h1 class="logo-text">NERTS!</h1>
-                <div class="subtitle">ONLINE</div>
-            </div>
-        </div>
-
-        <div class="lobby-area">
+        <a href="https://github.com/stonarini/nertstat" target="_blank" style="position:absolute; top:20px; right:15px;" >
+            <img src="help.webp" />
+        </a>
+        <div style="position: absolute; top: 80%; left: 50%; transform: translate(-50%, -50%)">
             <div id="lobby-container"
+                 style="max-height: 180px; overflow-y: scroll;"
                  hx-get="/lobbies"
                  hx-trigger="load, every 15s"
                  hx-swap="innerHTML">
-                 <div class="loading">Searching for games...</div>
             </div>
         </div>
     </body>
@@ -229,23 +118,43 @@ app.MapGet("/lobbies", () => {
     lock(Global.State) currentLobbies = new List<string[]>(Global.State);
 
     if (currentLobbies.Count == 0)
-        return Results.Content("<div style='padding:1rem; color:#6ee7b7; opacity:0.5; letter-spacing:1px;'>NO ACTIVE LOBBIES FOUND</div>", "text/html");
+        return Results.Content("<div style='opacity: 0.9; color: #74c3b2; font-size: 20px;'>NO LOBBIES FOUND</div>", "text/html");
 
-    var rows = currentLobbies.Select(l => $$"""
-        <tr>
-            <td style="font-weight:bold">{{System.Net.WebUtility.HtmlEncode(l[0])}}</td>
-            <td class="count">{{l[1]}}/{{l[2]}}</td>
-            <td class="region">{{l[3]}}</td>
-        </tr>
-    """);
+    var rows = currentLobbies.Select(l => {
+        int.TryParse(l[1], out int currentPlayers);
+        int.TryParse(l[2], out int maxCapacity);
+
+        var activeIcons = string.Concat(Enumerable.Repeat(
+            "<img src='/ap.webp'>",
+            currentPlayers
+        ));
+
+        int freeCount = Math.Max(0, maxCapacity - currentPlayers);
+        var freeIcons = string.Concat(Enumerable.Repeat(
+            "<img src='/ap.webp' style='opacity: 0.5;'>",
+            freeCount
+        ));
+
+        return $$"""
+            <tr>
+                <td style="width: 70px;"></td>
+                <td style="opacity: 0.9; color: #74c3b2; font-size: 16px; text-transform: uppercase;">
+                    <span style="font-size: 15px; padding-right: 30px; text-transform: lowercase;">{{l[3]}}</span>
+                    {{System.Net.WebUtility.HtmlEncode(l[0])}}
+                </td>
+                <td style="display: flex; justify-content: end; align-items: center; height: 60px; gap: 5px;">
+                    {{activeIcons}}{{freeIcons}}
+                </td>
+                <td style="width: 70px;"></td>
+            </tr>
+        """;
+    });
 
     string html = $$"""
+        <div style='opacity: 0.9; color: #74c3b2; font-size: 20px; margin-bottom: 18px; text-align: center;'>JOIN A LOBBY</div>
         <table>
             {{string.Join("", rows)}}
         </table>
-        <div style="margin-top:10px; font-size:0.7rem; color:#047857;">
-            UPDATED: {{DateTime.UtcNow:HH:mm:ss}} UTC
-        </div>
     """;
 
     return Results.Content(html, "text/html");
@@ -257,7 +166,7 @@ app.MapGet("/{buster}.svg", (string buster) => {
 
     const int width = 600;
     const int rowHeight = 30;
-    const int headerHeight = 160; // Taller header for the logo
+    const int headerHeight = 160;
 
     int contentHeight = lobbies.Count == 0 ? 50 : (lobbies.Count * rowHeight);
     int totalHeight = headerHeight + contentHeight + 40;
@@ -272,7 +181,6 @@ app.MapGet("/{buster}.svg", (string buster) => {
             string name = l[0].Length > 30 ? l[0][..29] + "..." : l[0];
             string region = l[3].Split('[')[0].Trim();
 
-            // Alternating row background opacity
             string bg = index % 2 == 0 ?
                 $"<rect x='50' y='{y-18}' width='{width-100}' height='24' fill='#ffffff' fill-opacity='0.05'/>" : "";
 
@@ -508,19 +416,8 @@ public static class RegionMapper {
                 Ping = int.TryParse(new string(parts[1].TakeWhile(char.IsDigit).ToArray()), out int p) ? p : 999
             })
             .OrderBy(x => x.Ping)
-            .FirstOrDefault()?.Code ?? "unknown";
+            .FirstOrDefault()?.Code ?? "?";
 
-        return _names.TryGetValue(bestCode, out var name) ? $"{name} [{bestCode.ToUpper()}]" : bestCode.ToUpper();
+        return bestCode.ToString();
     }
-
-    private static readonly Dictionary<string, string> _names = new() {
-        { "iad", "US East" },      { "ord", "US Central" },   { "dfw", "US South Central" },
-        { "lax", "US West" },      { "sea", "US North West" },{ "atl", "US South East" },
-        { "lhr", "London" },       { "fra", "Frankfurt" },    { "par", "Paris" },
-        { "ams", "Amsterdam" },    { "sto", "Stockholm" },    { "waw", "Warsaw" },
-        { "vie", "Vienna" },       { "mad", "Madrid" },       { "sgp", "Singapore" },
-        { "hkg", "Hong Kong" },    { "tyo", "Tokyo" },        { "syd", "Sydney" },
-        { "gru", "Brazil" },       { "scl", "Chile" },        { "lim", "Peru" },
-        { "jnb", "Johannesburg" }, { "dxb", "Dubai" },        { "bom", "Mumbai" }
-    };
 }

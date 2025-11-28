@@ -224,7 +224,7 @@ public static class ApiEndpoints
                 <h2>Other Endpoints</h2>
                 <ul>
                     <li><code><a href="/classic">/classic</a></code>: This is a "replica" of the NERTS! Online main page.</li>
-                    <li><code><a href="/image.gif">/{timestamp}.gif</a></code>: A dynamically generated image of the current lobby status. Really it works with any "name", since it's just a trick to invalidate caches.</li>
+                    <li><code><a href="/image.gif">/{timestamp}.gif</a></code>: A dynamically generated image of the current lobby status. Really it works with any "timestamp", since it's just a trick to invalidate caches.</li>
                 </ul>
             </body>
             </html>
